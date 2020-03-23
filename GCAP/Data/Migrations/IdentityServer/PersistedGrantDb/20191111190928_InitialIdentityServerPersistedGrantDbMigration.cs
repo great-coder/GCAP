@@ -1,7 +1,7 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
-namespace IdentityServer.Data.Migrations.IdentityServer.PersistedGrantDb
+namespace GCAP.Data.Migrations.IdentityServer.PersistedGrantDb
 {
     public partial class InitialIdentityServerPersistedGrantDbMigration : Migration
     {

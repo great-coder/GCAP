@@ -55,7 +55,8 @@ namespace GCAP
                     options.SignOutScheme = IdentityServerConstants.SignoutScheme;
                     options.SaveTokens = true;
 
-                    options.Authority = "https://auth.great-coder.io/";
+                    options.Authority = "https://demo.identityserver.io/";
+                    options.RequireHttpsMetadata = false;
                     options.ClientId = "native.code";
                     options.ClientSecret = "secret";
                     options.ResponseType = "code";
