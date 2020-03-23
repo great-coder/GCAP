@@ -1,7 +1,9 @@
+using IdentityServer4;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 
 namespace GCAP.ClientMVC
@@ -22,8 +24,12 @@ namespace GCAP.ClientMVC
                 options.DefaultChallengeScheme = "oidc";
             })
                 .AddCookie("Cookies")
-                .AddOpenIdConnect("oidc", options =>
+                .AddOpenIdConnect("oidc", "GCAP(Great Coder Auth Provider)", options =>
                 {
+                    options.SignInScheme = IdentityServerConstants.ExternalCookieAuthenticationScheme;
+                    options.SignOutScheme = IdentityServerConstants.SignoutScheme;
+                    options.SaveTokens = true;
+
                     options.Authority = "http://localhost:5000";
                     options.RequireHttpsMetadata = false;
 
@@ -31,7 +37,11 @@ namespace GCAP.ClientMVC
                     options.ClientSecret = "secret";
                     options.ResponseType = "code";
 
-                    options.SaveTokens = true;
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        NameClaimType = "name",
+                        RoleClaimType = "role"
+                    };
 
                     options.Scope.Add("api1");
                     options.Scope.Add("offline_access");

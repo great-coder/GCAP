@@ -5,8 +5,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
-using IdentityServer4;
-using Microsoft.IdentityModel.Tokens;
 using IdentityServer4.EntityFramework.Mappers;
 using IdentityServer4.EntityFramework.DbContexts;
 using System.Linq;
@@ -34,7 +32,7 @@ namespace GCAP
             string connectionString = Configuration.GetConnectionString("DefaultConnection");
 
             var builder = services.AddIdentityServer()
-                .AddTestUsers(TestUsers.Users)
+                .AddTestUsers(TestUsers.Users) // TODO: This should be removed !!!
                 .AddConfigurationStore(options =>
                 {
                     options.ConfigureDbContext = b => b.UseSqlServer(connectionString,
@@ -47,26 +45,6 @@ namespace GCAP
                 });
 
             builder.AddDeveloperSigningCredential();
-
-            services.AddAuthentication()
-                .AddOpenIdConnect("oidc", "GCAP(Great Coder Auth Provider)", options =>
-                {
-                    options.SignInScheme = IdentityServerConstants.ExternalCookieAuthenticationScheme;
-                    options.SignOutScheme = IdentityServerConstants.SignoutScheme;
-                    options.SaveTokens = true;
-
-                    options.Authority = "https://demo.identityserver.io/";
-                    options.RequireHttpsMetadata = false;
-                    options.ClientId = "native.code";
-                    options.ClientSecret = "secret";
-                    options.ResponseType = "code";
-
-                    options.TokenValidationParameters = new TokenValidationParameters
-                    {
-                        NameClaimType = "name",
-                        RoleClaimType = "role"
-                    };
-                });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
