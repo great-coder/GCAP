@@ -1,14 +1,11 @@
-using System.Reflection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Configuration;
-using IdentityServer4.EntityFramework.Mappers;
-using IdentityServer4.EntityFramework.DbContexts;
-using System.Linq;
-using GCAP.Data;
+using GCAP.Models;
 
 namespace GCAP
 {
@@ -27,22 +24,37 @@ namespace GCAP
         {
             services.AddControllersWithViews();
 
-            // migration assembly required as DbContext's are in a different assembly
-            var migrationsAssembly = typeof(Startup).GetTypeInfo().Assembly.GetName().Name;
-            string connectionString = Configuration.GetConnectionString("DefaultConnection");
+            // configures IIS out-of-proc settings
+            services.Configure<IISOptions>(iis =>
+            {
+                iis.AuthenticationDisplayName = "Windows";
+                iis.AutomaticAuthentication = false;
+            });
 
-            var builder = services.AddIdentityServer()
-                .AddTestUsers(TestUsers.Users) // TODO: This should be removed !!!
-                .AddConfigurationStore(options =>
-                {
-                    options.ConfigureDbContext = b => b.UseSqlServer(connectionString,
-                        sql => sql.MigrationsAssembly(migrationsAssembly));
-                })
-                .AddOperationalStore(options =>
-                {
-                    options.ConfigureDbContext = b => b.UseSqlServer(connectionString,
-                        sql => sql.MigrationsAssembly(migrationsAssembly));
-                });
+            // configures IIS in-proc settings
+            services.Configure<IISServerOptions>(iis =>
+            {
+                iis.AuthenticationDisplayName = "Windows";
+                iis.AutomaticAuthentication = false;
+            });
+
+            services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
+
+            services.AddIdentity<ApplicationUser, IdentityRole>()
+                .AddEntityFrameworkStores<ApplicationDbContext>()
+                .AddDefaultTokenProviders();
+
+            var builder = services.AddIdentityServer(options =>
+            {
+                options.Events.RaiseErrorEvents = true;
+                options.Events.RaiseInformationEvents = true;
+                options.Events.RaiseFailureEvents = true;
+                options.Events.RaiseSuccessEvents = true;
+            })
+                .AddInMemoryIdentityResources(Config.Ids)
+                .AddInMemoryApiResources(Config.Apis)
+                .AddInMemoryClients(Config.Clients);
 
             builder.AddDeveloperSigningCredential();
         }
@@ -52,57 +64,17 @@ namespace GCAP
         {
             if (env.IsDevelopment())
             {
-                InitializeDatabase(app);
                 app.UseDeveloperExceptionPage();
             }
-
             app.UseStaticFiles();
             app.UseRouting();
-
             app.UseIdentityServer();
+            app.UseAuthentication();
             app.UseAuthorization();
-
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapDefaultControllerRoute();
             });
-        }
-
-        private void InitializeDatabase(IApplicationBuilder app)
-        {
-            using (var serviceScope = app.ApplicationServices.GetService<IServiceScopeFactory>().CreateScope())
-            {
-                serviceScope.ServiceProvider.GetRequiredService<PersistedGrantDbContext>().Database.Migrate();
-
-                var context = serviceScope.ServiceProvider.GetRequiredService<ConfigurationDbContext>();
-                context.Database.Migrate();
-                if (!context.Clients.Any())
-                {
-                    foreach (var client in Config.Clients)
-                    {
-                        context.Clients.Add(client.ToEntity());
-                    }
-                    context.SaveChanges();
-                }
-
-                if (!context.IdentityResources.Any())
-                {
-                    foreach (var resource in Config.Ids)
-                    {
-                        context.IdentityResources.Add(resource.ToEntity());
-                    }
-                    context.SaveChanges();
-                }
-
-                if (!context.ApiResources.Any())
-                {
-                    foreach (var resource in Config.Apis)
-                    {
-                        context.ApiResources.Add(resource.ToEntity());
-                    }
-                    context.SaveChanges();
-                }
-            }
         }
     }
 }
