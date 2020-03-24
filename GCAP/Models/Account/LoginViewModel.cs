@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace GCAP
+namespace GCAP.Models.Account
 {
     public class LoginViewModel : LoginInputModel
     {

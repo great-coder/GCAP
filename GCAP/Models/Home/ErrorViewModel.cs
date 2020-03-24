@@ -1,6 +1,6 @@
 ﻿using IdentityServer4.Models;
 
-namespace GCAP
+namespace GCAP.Models.Home
 {
     public class ErrorViewModel
     {

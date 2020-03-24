@@ -1,4 +1,6 @@
-namespace GCAP.Device
+using GCAP.Models.Consent;
+
+namespace GCAP.Models.Device
 {
     public class DeviceAuthorizationInputModel : ConsentInputModel
     {

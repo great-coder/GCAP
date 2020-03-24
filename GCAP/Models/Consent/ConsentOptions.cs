@@ -1,4 +1,4 @@
-﻿namespace GCAP
+﻿namespace GCAP.Models.Consent
 {
     public class ConsentOptions
     {

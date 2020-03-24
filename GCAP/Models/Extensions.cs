@@ -1,7 +1,7 @@
 using System.Threading.Tasks;
 using IdentityServer4.Stores;
 
-namespace GCAP
+namespace GCAP.Models
 {
     public static class Extensions
     {

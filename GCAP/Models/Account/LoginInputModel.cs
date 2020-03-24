@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace GCAP
+namespace GCAP.Models.Account
 {
     public class LoginInputModel
     {

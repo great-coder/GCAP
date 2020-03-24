@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace GCAP
+namespace GCAP.Models.Account
 {
     public class AccountOptions
     {

@@ -1,4 +1,4 @@
-namespace GCAP
+namespace GCAP.Models.Account
 {
     public class LogoutViewModel : LogoutInputModel
     {

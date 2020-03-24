@@ -1,109 +1,96 @@
+using System;
+using System.Linq;
+using System.Threading.Tasks;
+using GCAP.Models;
+using GCAP.Models.Consent;
+using GCAP.Models.Device;
+using IdentityServer4.Configuration;
 using IdentityServer4.Events;
+using IdentityServer4.Extensions;
 using IdentityServer4.Models;
 using IdentityServer4.Services;
 using IdentityServer4.Stores;
-using IdentityServer4.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using System.Linq;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Options;
 
-namespace GCAP
+namespace GCAP.Controllers
 {
-    /// <summary>
-    /// This controller processes the consent UI
-    /// </summary>
-    [SecurityHeaders]
     [Authorize]
-    public class ConsentController : Controller
+    [SecurityHeaders]
+    public class DeviceController : Controller
     {
-        private readonly IIdentityServerInteractionService _interaction;
+        private readonly IDeviceFlowInteractionService _interaction;
         private readonly IClientStore _clientStore;
         private readonly IResourceStore _resourceStore;
         private readonly IEventService _events;
-        private readonly ILogger<ConsentController> _logger;
+        private readonly IOptions<IdentityServerOptions> _options;
+        private readonly ILogger<DeviceController> _logger;
 
-        public ConsentController(
-            IIdentityServerInteractionService interaction,
+        public DeviceController(
+            IDeviceFlowInteractionService interaction,
             IClientStore clientStore,
             IResourceStore resourceStore,
-            IEventService events,
-            ILogger<ConsentController> logger)
+            IEventService eventService,
+            IOptions<IdentityServerOptions> options,
+            ILogger<DeviceController> logger)
         {
             _interaction = interaction;
             _clientStore = clientStore;
             _resourceStore = resourceStore;
-            _events = events;
+            _events = eventService;
+            _options = options;
             _logger = logger;
         }
 
-        /// <summary>
-        /// Shows the consent screen
-        /// </summary>
-        /// <param name="returnUrl"></param>
-        /// <returns></returns>
         [HttpGet]
-        public async Task<IActionResult> Index(string returnUrl)
+        public async Task<IActionResult> Index()
         {
-            var vm = await BuildViewModelAsync(returnUrl);
-            if (vm != null)
-            {
-                return View("Index", vm);
-            }
+            string userCodeParamName = _options.Value.UserInteraction.DeviceVerificationUserCodeParameter;
+            string userCode = Request.Query[userCodeParamName];
+            if (string.IsNullOrWhiteSpace(userCode)) return View("UserCodeCapture");
 
-            return View("Error");
+            var vm = await BuildViewModelAsync(userCode);
+            if (vm == null) return View("Error");
+
+            vm.ConfirmUserCode = true;
+            return View("UserCodeConfirmation", vm);
         }
 
-        /// <summary>
-        /// Handles the consent screen postback
-        /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Index(ConsentInputModel model)
+        public async Task<IActionResult> UserCodeCapture(string userCode)
         {
-            var result = await ProcessConsent(model);
+            var vm = await BuildViewModelAsync(userCode);
+            if (vm == null) return View("Error");
 
-            if (result.IsRedirect)
-            {
-                if (await _clientStore.IsPkceClientAsync(result.ClientId))
-                {
-                    // if the client is PKCE then we assume it's native, so this change in how to
-                    // return the response is for better UX for the end user.
-                    return View("Redirect", new RedirectViewModel { RedirectUrl = result.RedirectUri });
-                }
-
-                return Redirect(result.RedirectUri);
-            }
-
-            if (result.HasValidationError)
-            {
-                ModelState.AddModelError(string.Empty, result.ValidationError);
-            }
-
-            if (result.ShowView)
-            {
-                return View("Index", result.ViewModel);
-            }
-
-            return View("Error");
+            return View("UserCodeConfirmation", vm);
         }
 
-        /*****************************************/
-        /* helper APIs for the ConsentController */
-        /*****************************************/
-        private async Task<ProcessConsentResult> ProcessConsent(ConsentInputModel model)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Callback(DeviceAuthorizationInputModel model)
+        {
+            if (model == null) throw new ArgumentNullException(nameof(model));
+
+            var result = await ProcessConsent(model);
+            if (result.HasValidationError) return View("Error");
+
+            return View("Success");
+        }
+
+        private async Task<ProcessConsentResult> ProcessConsent(DeviceAuthorizationInputModel model)
         {
             var result = new ProcessConsentResult();
 
-            // validate return url is still valid
-            var request = await _interaction.GetAuthorizationContextAsync(model.ReturnUrl);
+            var request = await _interaction.GetAuthorizationContextAsync(model.UserCode);
             if (request == null) return result;
 
             ConsentResponse grantedConsent = null;
 
             // user clicked 'no' - send back the standard 'access_denied' response
-            if (model?.Button == "no")
+            if (model.Button == "no")
             {
                 grantedConsent = ConsentResponse.Denied;
 
@@ -111,7 +98,7 @@ namespace GCAP
                 await _events.RaiseAsync(new ConsentDeniedEvent(User.GetSubjectId(), request.ClientId, request.ScopesRequested));
             }
             // user clicked 'yes' - validate the data
-            else if (model?.Button == "yes")
+            else if (model.Button == "yes")
             {
                 // if the user consented to some scope, build the response model
                 if (model.ScopesConsented != null && model.ScopesConsented.Any())
@@ -144,7 +131,7 @@ namespace GCAP
             if (grantedConsent != null)
             {
                 // communicate outcome of consent back to identityserver
-                await _interaction.GrantConsentAsync(request, grantedConsent);
+                await _interaction.HandleRequestAsync(model.UserCode, grantedConsent);
 
                 // indicate that's it ok to redirect back to authorization endpoint
                 result.RedirectUri = model.ReturnUrl;
@@ -153,15 +140,15 @@ namespace GCAP
             else
             {
                 // we need to redisplay the consent UI
-                result.ViewModel = await BuildViewModelAsync(model.ReturnUrl, model);
+                result.ViewModel = await BuildViewModelAsync(model.UserCode, model);
             }
 
             return result;
         }
 
-        private async Task<ConsentViewModel> BuildViewModelAsync(string returnUrl, ConsentInputModel model = null)
+        private async Task<DeviceAuthorizationViewModel> BuildViewModelAsync(string userCode, DeviceAuthorizationInputModel model = null)
         {
-            var request = await _interaction.GetAuthorizationContextAsync(returnUrl);
+            var request = await _interaction.GetAuthorizationContextAsync(userCode);
             if (request != null)
             {
                 var client = await _clientStore.FindEnabledClientByIdAsync(request.ClientId);
@@ -170,7 +157,7 @@ namespace GCAP
                     var resources = await _resourceStore.FindEnabledResourcesByScopeAsync(request.ScopesRequested);
                     if (resources != null && (resources.IdentityResources.Any() || resources.ApiResources.Any()))
                     {
-                        return CreateConsentViewModel(model, returnUrl, request, client, resources);
+                        return CreateConsentViewModel(userCode, model, client, resources);
                     }
                     else
                     {
@@ -182,25 +169,18 @@ namespace GCAP
                     _logger.LogError("Invalid client id: {0}", request.ClientId);
                 }
             }
-            else
-            {
-                _logger.LogError("No consent request matching request: {0}", returnUrl);
-            }
 
             return null;
         }
 
-        private ConsentViewModel CreateConsentViewModel(
-            ConsentInputModel model, string returnUrl,
-            AuthorizationRequest request,
-            Client client, Resources resources)
+        private DeviceAuthorizationViewModel CreateConsentViewModel(string userCode, DeviceAuthorizationInputModel model, Client client, Resources resources)
         {
-            var vm = new ConsentViewModel
+            var vm = new DeviceAuthorizationViewModel
             {
+                UserCode = userCode,
+
                 RememberConsent = model?.RememberConsent ?? true,
                 ScopesConsented = model?.ScopesConsented ?? Enumerable.Empty<string>(),
-
-                ReturnUrl = returnUrl,
 
                 ClientName = client.ClientName ?? client.ClientId,
                 ClientUrl = client.ClientUri,
@@ -212,7 +192,8 @@ namespace GCAP
             vm.ResourceScopes = resources.ApiResources.SelectMany(x => x.Scopes).Select(x => CreateScopeViewModel(x, vm.ScopesConsented.Contains(x.Name) || model == null)).ToArray();
             if (ConsentOptions.EnableOfflineAccess && resources.OfflineAccess)
             {
-                vm.ResourceScopes = vm.ResourceScopes.Union(new ScopeViewModel[] {
+                vm.ResourceScopes = vm.ResourceScopes.Union(new[]
+                {
                     GetOfflineAccessScope(vm.ScopesConsented.Contains(IdentityServer4.IdentityServerConstants.StandardScopes.OfflineAccess) || model == null)
                 });
             }
@@ -245,7 +226,6 @@ namespace GCAP
                 Checked = check || scope.Required
             };
         }
-
         private ScopeViewModel GetOfflineAccessScope(bool check)
         {
             return new ScopeViewModel

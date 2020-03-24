@@ -1,4 +1,6 @@
 using GCAP.Data;
+using GCAP.Models;
+using GCAP.Models.Account;
 using IdentityModel;
 using IdentityServer4.Events;
 using IdentityServer4.Extensions;
@@ -14,7 +16,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace GCAP
+namespace GCAP.Controllers
 {
     /// <summary>
     /// This sample controller implements a typical login/logout/provision workflow for local and external accounts.
@@ -155,7 +157,7 @@ namespace GCAP
                     }
                 }
 
-                await _events.RaiseAsync(new UserLoginFailureEvent(model.Username, "invalid credentials", clientId:context?.ClientId));
+                await _events.RaiseAsync(new UserLoginFailureEvent(model.Username, "invalid credentials", clientId: context?.ClientId));
                 ModelState.AddModelError(string.Empty, AccountOptions.InvalidCredentialsErrorMessage);
             }
 
@@ -164,7 +166,7 @@ namespace GCAP
             return View(vm);
         }
 
-        
+
         /// <summary>
         /// Show logout page
         /// </summary>
@@ -198,7 +200,6 @@ namespace GCAP
             {
                 // delete local authentication cookie
                 await HttpContext.SignOutAsync();
-
                 // raise the logout event
                 await _events.RaiseAsync(new UserLogoutSuccessEvent(User.GetSubjectId(), User.GetDisplayName()));
             }
@@ -214,7 +215,6 @@ namespace GCAP
                 // this triggers a redirect to the external provider for sign-out
                 return SignOut(new AuthenticationProperties { RedirectUri = url }, vm.ExternalAuthenticationScheme);
             }
-
             return View("LoggedOut", vm);
         }
 

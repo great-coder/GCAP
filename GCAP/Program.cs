@@ -11,7 +11,6 @@ namespace GCAP
     {
         public static void Main(string[] args)
         {
-            Console.Title = "GCAPv1.0";
             CreateHostBuilder(args).Build().Run();
         }
 

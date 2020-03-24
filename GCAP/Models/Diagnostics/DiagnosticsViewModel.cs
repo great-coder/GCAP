@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.Text;
 
-namespace GCAP
+namespace GCAP.Models.Diagnostics
 {
     public class DiagnosticsViewModel
     {

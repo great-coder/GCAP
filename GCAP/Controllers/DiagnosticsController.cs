@@ -1,10 +1,12 @@
 using System.Linq;
 using System.Threading.Tasks;
+using GCAP.Models;
+using GCAP.Models.Diagnostics;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace GCAP
+namespace GCAP.Controllers
 {
     [SecurityHeaders]
     [Authorize]

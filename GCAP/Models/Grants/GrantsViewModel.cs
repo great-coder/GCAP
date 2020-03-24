@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace GCAP
+namespace GCAP.Models.Grants
 {
     public class GrantsViewModel
     {
