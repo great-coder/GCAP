@@ -13,7 +13,6 @@ namespace GCAP
                 new IdentityResources.Profile(),
             };
 
-
         public static IEnumerable<ApiResource> Apis =>
             new List<ApiResource>
             {
