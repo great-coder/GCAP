@@ -24,17 +24,12 @@ namespace GCAP.Migrations
                     b.Property<string>("AppId")
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<string>("ApplicationUserId")
-                        .HasColumnType("nvarchar(450)");
-
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("AppId");
 
-                    b.HasIndex("ApplicationUserId");
-
-                    b.ToTable("App");
+                    b.ToTable("Apps");
                 });
 
             modelBuilder.Entity("GCAP.Models.ApplicationUser", b =>
@@ -240,13 +235,6 @@ namespace GCAP.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("AspNetUserTokens");
-                });
-
-            modelBuilder.Entity("GCAP.Models.App", b =>
-                {
-                    b.HasOne("GCAP.Models.ApplicationUser", null)
-                        .WithMany("Apps")
-                        .HasForeignKey("ApplicationUserId");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
