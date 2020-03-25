@@ -14,18 +14,18 @@ namespace GCAP.Models
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
+            builder.Entity<UserApp>().HasKey(c => new { c.UserId, c.ClientId });
             // Customize the ASP.NET Identity model and override the defaults if needed.
             // For example, you can rename the ASP.NET Identity table names and more.
             // Add your customizations after calling base.OnModelCreating(builder);
         }
 
-        public DbSet<App> Apps { get; set; }
+        public DbSet<UserApp> UserApps { get; set; }
     }
 
     public class ApplicationUser : IdentityUser
     {
         public string FirstName { get; set; }
         public string LastName { get; set; }
-        public bool IsDisabled { get; set; }
     }
 }

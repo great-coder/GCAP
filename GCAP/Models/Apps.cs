@@ -3,14 +3,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace GCAP.Models
 {
-    public class App
-    {
-        [Key]
-        public string AppId { get; set; }
-
-        public string Name { get; set; }
-    }
-
     public enum ACCESS
     {
         Administrator,
@@ -26,9 +18,7 @@ namespace GCAP.Models
         public virtual ApplicationUser User { get; set; }
 
         [Key, Column(Order = 1)]
-        [ForeignKey("App")]
-        public string AppId { get; set; }
-        public virtual App App { get; set; }
+        public string ClientId { get; set; }
 
         public ACCESS AppAccess { get; set; }
     }
