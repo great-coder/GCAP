@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using GCAP.Models;
+using GCAP.Models.Identity;
 
 namespace GCAP
 {
@@ -64,9 +65,11 @@ namespace GCAP
                 options.Events.RaiseFailureEvents = true;
                 options.Events.RaiseSuccessEvents = true;
             })
-                .AddInMemoryIdentityResources(Config.Ids)
-                .AddInMemoryApiResources(Config.Apis)
-                .AddInMemoryClients(Config.Clients);
+            //.AddOperationalStore()
+            //.AddConfigurationStore();
+            .AddInMemoryIdentityResources(Config.Ids)
+            .AddInMemoryApiResources(Config.Apis)
+            .AddInMemoryClients(Config.Clients);
 
             builder.AddDeveloperSigningCredential();
         }

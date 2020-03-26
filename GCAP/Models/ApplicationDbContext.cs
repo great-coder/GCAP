@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using IdentityServer4.EntityFramework.Entities;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,6 +22,12 @@ namespace GCAP.Models
         }
 
         public DbSet<UserApp> UserApps { get; set; }
+
+        public DbSet<Client> Clients { get; set; }
+
+        public DbSet<IdentityResource> IdentityResources { get; set; }
+
+        public DbSet<ApiResource> ApiResources { get; set; }
     }
 
     public class ApplicationUser : IdentityUser
